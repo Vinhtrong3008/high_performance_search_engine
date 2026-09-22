@@ -44,7 +44,7 @@ app.include_router(
 app.include_router(
     search_router, 
     prefix=settings.API_V1_STR
-    )
+)
 
 @app.get("/health", tags=["Health Check"])
 async def health_check():
