@@ -3,6 +3,8 @@ from modules.api.v1.schemas.crawler_schema import CrawlRequest, ArticleResponse
 from modules.crawler.infrastructure.bs4_scraper import BS4CrawlerRepository
 from modules.crawler.application.crawl_usecase import CrawlArticleUseCase
 from modules.pipeline.application.pipeline_usecase import ProcessArticlePipelineUseCase
+from modules.search.infrastructure.es_repository import ElasticsearchSearchRepository
+from modules.search.application.index_usecase import IndexArticleUseCase
 
 router = APIRouter(prefix="/crawler", tags=["Web Crawler & Pipeline"])
 
@@ -18,10 +20,16 @@ async def scrape_article(payload: CrawlRequest):
         pipeline_use_case = ProcessArticlePipelineUseCase()
         cleaned_article = pipeline_use_case.execute(raw_article)
 
-        # Bước 3: Trả về kết quả JSON thống nhất qua API Response DTO
+        # Bước 3: Tự động Indexing dữ liệu sạch vào Elasticsearch
+        search_repo = ElasticsearchSearchRepository()
+        index_use_case = IndexArticleUseCase(search_repo)
+        doc_id = await index_use_case.execute(cleaned_article)
+
+        # Bước 4: Trả về kết quả JSON thống nhất qua API Response DTO
         return {
             "success": True,
             "data": {
+                "document_id": doc_id,
                 "url": cleaned_article.url,
                 "title": cleaned_article.title,
                 "summary": cleaned_article.summary,
@@ -29,7 +37,7 @@ async def scrape_article(payload: CrawlRequest):
                 "keywords": cleaned_article.keywords,
                 "content_preview": cleaned_article.content[:300] + "..."
             },
-            "message": "Article successfully scraped and processed through pipeline."
+            "message": "Article successfully scraped, processed, and indexed into Elasticsearch."
         }
     except Exception as e:
         raise HTTPException(
