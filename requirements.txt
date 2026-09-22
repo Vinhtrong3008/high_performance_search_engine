@@ -8,3 +8,5 @@ elasticsearch==8.15.0
 python-dotenv==1.0.1
 structlog==24.4.0
 aiohttp==3.10.5
+httpx==0.27.2
+beautifulsoup4==4.12.3
