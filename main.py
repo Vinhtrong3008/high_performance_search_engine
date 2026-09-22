@@ -6,7 +6,7 @@ from core.config.settings import settings
 from core.logging.logger import setup_logging, get_logger
 from core.database.elasticsearch import es_client
 from modules.api.v1.endpoints.crawler import router as crawler_router
-
+from modules.api.v1.endpoints.search import router as search_router
 
 # Setup logging
 setup_logging()
@@ -41,7 +41,10 @@ app.include_router(
     crawler_router,
     prefix=settings.API_V1_STR
 )
-
+app.include_router(
+    search_router, 
+    prefix=settings.API_V1_STR
+    )
 
 @app.get("/health", tags=["Health Check"])
 async def health_check():
