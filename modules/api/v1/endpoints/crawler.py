@@ -1,15 +1,17 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
 from modules.api.v1.schemas.crawler_schema import CrawlRequest, ArticleResponse
 from modules.crawler.infrastructure.bs4_scraper import BS4CrawlerRepository
 from modules.crawler.application.crawl_usecase import CrawlArticleUseCase
 from modules.pipeline.application.pipeline_usecase import ProcessArticlePipelineUseCase
 from modules.search.infrastructure.es_repository import ElasticsearchSearchRepository
 from modules.search.application.index_usecase import IndexArticleUseCase
+from core.middleware.rate_limiter import limiter
 
 router = APIRouter(prefix="/crawler", tags=["Web Crawler & Pipeline"])
 
 @router.post("/scrape", response_model=ArticleResponse)
-async def scrape_article(payload: CrawlRequest):
+@limiter.limit("5/minute")  # Giới hạn tối đa 5 request cào dữ liệu mỗi phút từ 1 IP
+async def scrape_article(request: Request, payload: CrawlRequest):
     try:
         # Bước 1: Cào dữ liệu thô (Raw Data) từ URL
         crawler_repo = BS4CrawlerRepository()
