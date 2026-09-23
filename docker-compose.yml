@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # 1. FastAPI Web Application Service
+  web_app:
+    build: .
+    container_name: search_engine_app
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - ELASTICSEARCH_HOST=http://elasticsearch:9200
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgrespassword
+      - POSTGRES_DB=search_engine_db
+      - POSTGRES_PORT=5432
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - search_net
+
+  # 2. Elasticsearch Service (Search Engine core)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+    container_name: search_engine_es
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - search_net
+
+  # 3. PostgreSQL Service (Relational Database)
+  postgres:
+    image: postgres:15-alpine
+    container_name: search_engine_postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgrespassword
+      - POSTGRES_DB=search_engine_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - search_net
+
+volumes:
+  es_data:
+  pg_data:
+
+networks:
+  search_net:
+    driver: bridge
